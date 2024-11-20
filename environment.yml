@@ -1,0 +1,24 @@
+
+name: petct-translation
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.8
+  - pytorch
+  - torchvision
+  - cudatoolkit=11.1  # Adjust this based on your CUDA version
+  - numpy
+  - scikit-learn
+  - matplotlib
+  - pandas
+  - scikit-image
+  - nibabel  # For NIfTI file support
+  - h5py
+  - tqdm
+  - pyyaml
+  - pip
+  - pip:
+      - torchsummary
+      - tensorboard
