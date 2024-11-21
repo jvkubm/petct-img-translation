@@ -6,8 +6,10 @@ class UNet3D(nn.Module):
         super(UNet3D, self).__init__()
         features = init_features
         # Encoder path
+        # in the block the feature size stays the same (padding=1)
+        # so the reduction in size is done only by maxpooling
         self.encoder1 = UNet3D._block(in_channels, features)
-        self.pool1 = nn.MaxPool3d(kernel_size=2, stride=2)
+        self.pool1 = nn.MaxPool3d(kernel_size=2, stride=2) # reduction by 2 in each dimension
         self.encoder2 = UNet3D._block(features, features * 2)
         self.pool2 = nn.MaxPool3d(kernel_size=2, stride=2)
         self.encoder3 = UNet3D._block(features * 2, features * 4)
@@ -19,7 +21,8 @@ class UNet3D(nn.Module):
         self.bottleneck = UNet3D._block(features * 8, features * 16)
         
         # Decoder path
-        self.upconv4 = nn.ConvTranspose3d(features * 16, features * 8, kernel_size=2, stride=2)
+        self.upconv4 = nn.ConvTranspose3d(features * 16, features * 8, kernel_size=2, stride=2) # in_channels, out_channels, kernel_size, stride
+        # so one deconv layer doubles the size of the input and halves the number of channels
         self.decoder4 = UNet3D._block((features * 8) * 2, features * 8)
         self.upconv3 = nn.ConvTranspose3d(features * 8, features * 4, kernel_size=2, stride=2)
         self.decoder3 = UNet3D._block((features * 4) * 2, features * 4)
@@ -62,7 +65,14 @@ class UNet3D(nn.Module):
     def _block(in_channels, features, name=""):
         # Convolutional block with Conv3D, BatchNorm3D, and ReLU
         return nn.Sequential(
-            nn.Conv3d(in_channels=in_channels, out_channels=features, kernel_size=3, padding=1, bias=False),
+            nn.Conv3d(in_channels=in_channels, out_channels=features, kernel_size=3, padding=1, bias=False), 
+            # stride default is 1
+            # padding is added to all six sides of the input, default=0
+            # padding_mode default is zeros
+            # so this way in the block the output size is the same as the input size
+            # bias adds a learnable bias to the output
+            # dilation default is 1, spacing between kernel elements, so its classic, dilation=2 would be Atrous Convolution (dilated convolution)
+            # atrous can be used to increase RF size without increasing the number of parameters of the model
             nn.BatchNorm3d(num_features=features),
             nn.ReLU(inplace=True),
             nn.Conv3d(in_channels=features, out_channels=features, kernel_size=3, padding=1, bias=False),
