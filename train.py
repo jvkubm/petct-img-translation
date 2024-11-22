@@ -1,3 +1,4 @@
+import os 
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -13,6 +14,10 @@ device = (
     else "cpu"
 )
 print(f"Using {device} device")
+
+# Directory to save the checkpoints
+checkpoint_dir = 'checkpoints'
+os.makedirs(checkpoint_dir, exist_ok=True)
 
 # Define hyperparameters
 num_epochs = 100
@@ -43,6 +48,8 @@ for name, param in generator.named_parameters():
     print(f"Layer: {name} | Size: {param.size()} | Values : {param[:2]} \n")
 
 # Training loop
+# ToDo: do I need model.train() here?
+# whats the diff between model.train() and model.zero_grad() here?
 for epoch in range(num_epochs):
     for i, (pet_images, ct_images) in enumerate(train_loader):
         pet_images = pet_images.to(device)
@@ -69,8 +76,8 @@ for epoch in range(num_epochs):
         # Total generator loss
         loss_G = loss_GAN + 100 * loss_pixel
 
-        loss_G.backward()
-        optimizer_G.step()
+        loss_G.backward() # Backpropagate the loss
+        optimizer_G.step() # Update the generator weights
 
         # ---------------------
         #  Train Discriminator
@@ -81,11 +88,20 @@ for epoch in range(num_epochs):
         loss_real = criterion_GAN(discriminator(torch.cat((pet_images, ct_images), 1)), real)
         # Fake loss, we want that discriminator correctly classifies fake images as fake
         loss_fake = criterion_GAN(discriminator(torch.cat((pet_images, gen_ct_images.detach()), 1)), fake)
-        # Total discriminator loss
-        loss_D = (loss_real + loss_fake) / 2
 
-        loss_D.backward()
-        optimizer_D.step()
+        # Total discriminator loss
+        loss_D = (loss_real + loss_fake) / 2 # Average the real and fake loss
+        loss_D.backward() # Backpropagate the loss
+        optimizer_D.step() # Update the discriminator weights
 
         # Print the losses
         print(f"[Epoch {epoch}/{num_epochs}] [Batch {i}/{len(train_loader)}] [D loss: {loss_D.item()}] [G loss: {loss_G.item()}]")
+
+    # Save the model checkpoints after every 10 epochs
+    if (epoch+1) % 10 == 0:
+        torch.save(generator.state_dict(), os.path.join(checkpoint_dir, f'generator_epoch_{epoch}.pth'))
+        torch.save(discriminator.state_dict(), os.path.join(checkpoint_dir, f'discriminator_epoch_{epoch}.pth'))
+        print(f"Saved model checkpoints for epoch {epoch}")
+    
+    # here it would be nice to either to either show the results on the validation set
+    # or somehow qualitatively show results, like print images or something 
