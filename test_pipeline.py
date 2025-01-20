@@ -15,16 +15,16 @@ print(f"Using {device} device")
 # Define input dimensions
 batch_size = 1
 in_channels = 1
-depth = 64
-height = 64
-width = 64
+# depth = 64
+height = 256
+width = 256
 
 # Initialize models
-generator = Generator(in_channels, in_channels).to(device)
-discriminator = Discriminator(in_channels * 2).to(device)
+generator = Generator(in_channels, in_channels, is_3d=False).to(device)
+discriminator = Discriminator(in_channels * 2, is_3d=False).to(device)
 
 # Create a random tensor to simulate a PET image
-pet_image = torch.randn(batch_size, in_channels, depth, height, width).to(device)
+pet_image = torch.randn(batch_size, in_channels, height, width).to(device) # removed depth coy checking 2d
 
 # Pass the tensor through the generator to create a CT image
 gen_ct_image = generator(pet_image)
